@@ -1,4 +1,4 @@
-load('Semaphore.rb')
+
 require 'socket'
 require 'thread'
 require 'json'
@@ -7,7 +7,9 @@ require 'json'
 class ChatServer
   MAX_SIZE = 5
   @@host = 'localhost'
-  def initialize(host, port)
+  def initialize(host, port, ui_server, ui_port)
+    @ui_ip = ui_server
+    @ui_port = ui_port
     @ip = host
     @port = port
     @server = UDPSocket.new
@@ -28,9 +30,10 @@ class ChatServer
       handle_message(msg, sender)
     end
   end
+
   def handle_message(message, sender)
     partitions = message.split(/\s+/)
-    puts message
+    send_to_ui("Server Received", message, sender)
     case partitions[0]
     when "REGISTER"
       handler = Thread.new{handle_register(message, sender)}
@@ -117,6 +120,10 @@ class ChatServer
       end
     }
   end
+
+  def send_to_ui(type, message, sender)
+    @server.send({message: "#{type} : #{message}", sender: "ip #{sender[2]} port #{sender[1]}"}.to_json, 0 , @ui_ip, @ui_port)
+  end
 end
 
-ChatServer.new('localhost', 9999)
+ChatServer.new('localhost', 9999, 'localhost', 8002)

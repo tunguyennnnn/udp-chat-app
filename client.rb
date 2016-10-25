@@ -1,3 +1,5 @@
+require 'thread'
+require 'json'
 require 'socket'
 s = UDPSocket.new
 PORT = 1234
@@ -7,9 +9,11 @@ HOST = 'localhost'
 
 class ClientChat
   MAX_BYTE_SIZE = 140
-  def initialize(port, ip, name, server_ip, server_port, func)
+  def initialize(port, ip, name, server_ip, server_port, ui_ip, ui_port, func)
     @name = name
     @port = port
+    @ui_ip = ui_ip
+    @ui_port = ui_port
     @server_ip = server_ip
     @server_port = server_port
     @ip = ip || "127.0.0.1"
@@ -42,6 +46,7 @@ class ClientChat
 
   def handle_message(message, sender)
     partition = message.split(/\s+/)
+    send_to_ui("Client Received", message, sender)
     case partition[0]
     when "REGISTERED"
       @server_ip = sender[2]
@@ -131,5 +136,9 @@ class ClientChat
     else
       puts "#{name} is not in the list of your friend"
     end
+  end
+
+  def send_to_ui(type, message, sender)
+    @client.send({message: "#{type} : #{message}", sender: "ip #{sender[2]} port #{sender[1]}"}.to_json, 0 , @ui_ip, @ui_port)
   end
 end
