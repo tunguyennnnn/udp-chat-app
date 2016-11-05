@@ -1,0 +1,54 @@
+body {
+  background-image: url(http://static.tumblr.com/3nghtcy/cRImezufo/low_contrast_linen.png);
+}
+.grid{
+  padding: 20px;
+  border-style: solid;
+  border-width: 10px;
+  border-color: black;
+  border-radius: 20px;
+  background-color: rgba(106, 113, 109, 0.2);
+}
+
+.entity{
+  width: 100%;
+  height: 250px;
+  border-style: solid;
+  border-width: 5px;
+  border-color: white;
+  border-radius: 10px;
+}
+
+.entity-header{
+  width: 100%;
+  height: 30px;
+  position: relative;
+  background: black;
+}
+.label{
+  margin: 3px;
+  cursor: pointer;
+}
+
+.box-area{
+  position: absolute;
+  display: none;
+}
+
+.entity-body{
+  width: 100%;
+  height: 180px;
+  position: relative;
+  background: white;
+  overflow-y: scroll;
+}
+
+.chat-box{
+  position: relative;
+  width: 100%;
+  height: 30px;
+}
+
+h2{
+  color: white;
+}

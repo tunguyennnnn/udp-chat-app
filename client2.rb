@@ -1,8 +1,9 @@
 load 'client.rb'
-b = ClientChat.new(20000, nil, "bb", nil, 9999, 'localhost', 8002, lambda{ |obj|
-  obj.register 0
-  sleep 1
-  obj.find_user 1, "aa"
+addr = Socket.ip_address_list
+server_ip = 'localhost' || addr.last.ip_address
+b = ClientChat.new(20000, server_ip, "bb", server_ip, 9999,'localhost', 8002, lambda{ |obj|
+  obj.register
+  obj.find_user "aa"
   sleep(5)
   obj.chat_message("aa", "hello how are you bae")
 })

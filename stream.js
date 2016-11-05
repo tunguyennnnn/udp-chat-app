@@ -1,16 +1,18 @@
 var sys = require('sys'),
 http = require('http');
 var fs = require('fs')
+var qs = require('querystring');
 
 const dgram = require('dgram');
 const server = dgram.createSocket('udp4');
-server.bind(8002);
+server.bind(8002, 'localhost');
 
 var messageToUi = {};
 
 http.createServer(function (req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.writeHead(200, {'Content-Type': 'text/html'});
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.writeHead(200, {'Content-Type': 'text/html'});
+  if (req.method === 'GET'){
     var currentTime = new Date();
     sys.puts('Starting sending time');
     setInterval(function(){
@@ -19,8 +21,30 @@ http.createServer(function (req, res) {
         messageToUi = {};
       }
     }, 100);
+  }
+  else if (req.method === 'POST'){
+    var body = ''
+    req.on('data', function(data){
+      body += data;
+    });
 
-}).listen(8000)
+    req.on('end', function () {
+      console.log(body);
+      sendTo(qs.parse(body));
+      res.write('true');
+    });
+  }
+
+}).listen(8000, 'localhost')
+
+
+function sendTo(data){
+  console.log(data)
+  var port = data.port;
+  var ip = data.ip;
+  var message = 'EXEC ' + data.message;
+  server.send(message, 0, message.length, port, ip);
+}
 
 server.on('error', function(err){
   console.log(`server error:\n${err.stack}`);
@@ -38,7 +62,6 @@ server.on('listening', function(){
   var address = server.address();
   console.log(`server listening ${address.address}:${address.port}`);
 });
-var message = `REGISTER 0 XX ${1123123}`
 
 
 String.prototype.isEmpty = function(){
