@@ -29,7 +29,6 @@ http.createServer(function (req, res) {
     });
 
     req.on('end', function () {
-      console.log(body);
       sendTo(qs.parse(body));
       res.write('true');
     });

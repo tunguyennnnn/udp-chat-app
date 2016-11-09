@@ -84,7 +84,32 @@ function Entity(type, id, name, ip){
     $(this).find('.box-area').first().show();
   }).mouseleave(function(){
     $(this).find('.box-area').first().hide()
-  })
+  });
+
+  function initChatBox(){
+    var friend = null;
+    var $chatBox = self.$entity.find('.chat-box').first();
+    var $sendButton = $chatBox.find('.send-chat-message').first();
+    var $select = $chatBox.find('.friends-chat').first().selectize({
+      maxItems: 1,
+      valueField: 'id',
+      labelField: 'name',
+      onItemAdd: function(value, $item){
+        console.log(value)
+        friend = value;
+      }
+    });
+    var selectize = self.selectize = $select[0].selectize;
+    $sendButton.on('click', function(){
+      var chatMessage = $chatBox.find('.chat-message').first().val();
+      if (friend){
+        post({ip: self.ip, port: self.port, message: `chat_message ${friend} ${chatMessage}`})
+      }
+    })
+  }
+  initChatBox();
+
+
 
   function generateHtml(id){
     var html = '<div class="entity" id="' + id +'">'
@@ -118,13 +143,16 @@ function Entity(type, id, name, ip){
     html +=      '</div>'
     html +=      '<div class="entity-body">'
     html +=      '</div>'
-    html +=      '<div class="chat-box"><select class="friends-chat col-xs-4"></select><input class="col-xs-8"></input></div>'
+    html +=      '<div class="chat-box"><div class="col-xs-3"><select class="friends-chat"></select></div><input class="chat-message col-xs-7"></input><button type="button" class="send-chat-message col-xs-2">Send</button></div>'
     html +=    '</div>'
     return html;
   }
 
   this.addMessage = function(message){
-    console.log(message);
+    if (message.indexOf('FINDResp') != -1){
+      var friendName = message.split(' ')[6];
+      this.selectize.addOption({name: friendName, id: friendName})
+    }
     self.$entity.find('.entity-body').first().append('<span>'+ message + '</span><br>')
   }
 }
