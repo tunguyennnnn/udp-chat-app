@@ -32,7 +32,6 @@ function progress(result){
     var message = result[key].message;
     var id = result[key].sender;
     var ip = result[key].ip
-    console.log(id);
     if (entities[id]){
       entities[id].addMessage(message);
     }
@@ -55,63 +54,104 @@ function Entity(type, id, name, ip){
   this.ip = ip;
   this.port = partitions[1];
   if (type === 'client'){
-    $('#client-grid').append((generateHtml(this.id)));
+    $('#client-grid').append((generateClientHtml(this.id, this.ip, this.port)));
   }
   else{
-    $('#server-grid').append((generateHtml(this.id)));
+    $('#server-grid').append((generateServerHtml(this.id, this.ip, this.port)));
   }
   this.$entity = $('#' + this.id);
-  this.$entity.find('.register').first().off().on('click',function(){
-    $(this).find('.box-area').first().show(function(){
-      var $self = $(this);
-      $(this).find('.send-to-server').first().off().on('click',function(){
-        var server = $self.find('.ip').first().val();
-        var port = $self.find('.port').first().val();
-        post({ip: self.ip, port: self.port, message: `register ${server} ${port}`})
-      })
-    });
-  }).mouseleave(function(){
-    $(this).find('.box-area').first().hide()
-  })
-
-  this.$entity.find('.publish').first().click(function(){
-    $(this).find('.box-area').first().show();
-  }).mouseleave(function(){
-    $(this).find('.box-area').first().hide()
-  });
-
-  this.$entity.find('.bye').first().click(function(){
-    $(this).find('.box-area').first().show();
-  }).mouseleave(function(){
-    $(this).find('.box-area').first().hide()
-  });
-
-  function initChatBox(){
-    var friend = null;
-    var $chatBox = self.$entity.find('.chat-box').first();
-    var $sendButton = $chatBox.find('.send-chat-message').first();
-    var $select = $chatBox.find('.friends-chat').first().selectize({
-      maxItems: 1,
-      valueField: 'id',
-      labelField: 'name',
-      onItemAdd: function(value, $item){
-        console.log(value)
-        friend = value;
-      }
-    });
-    var selectize = self.selectize = $select[0].selectize;
-    $sendButton.on('click', function(){
-      var chatMessage = $chatBox.find('.chat-message').first().val();
-      if (friend){
-        post({ip: self.ip, port: self.port, message: `chat_message ${friend} ${chatMessage}`})
-      }
+  if (type === 'client'){
+    this.$entity.find('.register').first().off().on('click',function(){
+      $(this).find('.box-area').first().show(function(){
+        var $self = $(this);
+        $(this).find('.send-to-server').first().off().on('click',function(){
+          var server = $self.find('.ip').first().val();
+          var port = $self.find('.port').first().val();
+          post({ip: self.ip, port: self.port, message: `register ${server} ${port}`})
+        })
+      });
+    }).mouseleave(function(){
+      $(this).find('.box-area').first().hide()
     })
+
+    this.$entity.find('.req-info').first().on('click', function(){
+      post({ip: self.ip, port: self.port, message: `inform_request`})
+    })
+    this.$entity.find('.publish').first().click(function(){
+      $(this).find('.box-area').first().show();
+    }).mouseleave(function(){
+      $(this).find('.box-area').first().hide()
+    });
+
+    this.$entity.find('.bye').first().click(function(){
+      $(this).find('.box-area').first().show();
+    }).mouseleave(function(){
+      $(this).find('.box-area').first().hide()
+    });
+
+    function initChatBox(){
+      var friend = null;
+      var $chatBox = self.$entity.find('.chat-box').first();
+      var $sendButton = $chatBox.find('.send-chat-message').first();
+      var $select = $chatBox.find('.friends-chat').first().selectize({
+        maxItems: 1,
+        valueField: 'id',
+        labelField: 'name',
+        onItemAdd: function(value, $item){
+          friend = value;
+        }
+      });
+      var selectize = self.selectize = $select[0].selectize;
+      $sendButton.on('click', function(){
+        var chatMessage = $chatBox.find('.chat-message').first().val();
+        if (friend){
+          post({ip: self.ip, port: self.port, message: `chat_message ${friend} ${chatMessage}`})
+        }
+      })
+    }
+    initChatBox();
+
+    function initPublish(){
+      var on = 'on';
+      var $publish = self.$entity.find('.publish').first();
+      var $on = $publish.find('.client-status-on').first();
+      var $off = $publish.find('.client-status-on').first();
+      var $names = $publish.find('.friend-names').first();
+      $publish.find('.send-to-server').first().on('click', function(){
+        var names = $names.val();
+        if ($on.checked){
+          on = 'on';
+        }
+        else if ($off.checked){
+          on = 'off';
+        }
+        post({ip: self.ip, port: self.port, message: `publish ${on} ${names}`})
+      });
+    }
+    initPublish();
+
+    var $findReq = this.$entity.find('.find-req').first();
+    $findReq.on('click', function(){
+      $(this).find('.box-area').first().show();
+    }).mouseleave(function(){
+      $(this).find('.box-area').first().hide()
+    }).find('.send-to-server').first().on('click', function(){
+      var friendName = $findReq.find('.friend-names').first().val();
+      post({ip: self.ip, port: self.port, message: `find_user ${friendName}`})
+    });
+
   }
-  initChatBox();
 
-
-
-  function generateHtml(id){
+  function generateServerHtml(id, ip, port){
+    var html = '<div class="entity" id="' + id +'">'
+    html +=      '<div class="entity-header">'
+    html +=         `<span>server_ip: ${ip} port: ${port}</span>`
+    html +=      '</div>'
+    html +=      '<div class="entity-body"></div>'
+    html +=    '</div>'
+    return html;
+  }
+  function generateClientHtml(id, ip, port){
     var html = '<div class="entity" id="' + id +'">'
     html +=      '<div class="entity-header">'
     html +=        '<span class="label label-primary register">'
@@ -125,21 +165,28 @@ function Entity(type, id, name, ip){
     html +=        '<span class="label label-primary publish">'
     html +=          'Publish'
     html +=          '<div class="box-area input-group">'
-    html +=            '<div class="btn-group col-xs-12" role="group" aria-label="..." style="z-index: 1000"><button type="button" class="btn btn-default">ON</button><button type="button" class="btn btn-default">OFF</button></div>'
-    html +=            '<div class="col-xs-12"><input type="text" class="form-control" placeholder="friends" aria-describedby="sizing-addon1"></div>'
+    html +=            '<div class="btn-group col-xs-12" role="group" aria-label="..." style="z-index: 1000"><input type="checkbox" value="" class="client-status-on">ON</input><input type="checkbox" value="" class="client-status-off">OFF</input></div>'
+    html +=            '<div class="col-xs-12"><input type="text" class="form-control friend-names" placeholder="friends" aria-describedby="sizing-addon1"></div>'
     html +=            '<div class="btn-group col-xs-12" role="group" style="z-index: 1000"><button type="button" class="btn btn-default send-to-server">Send</button></div>'
     html +=          '</div>'
     html +=        '</span>'
     html +=        '<span class="label label-primary req-info">'
     html +=           'Request Information'
     html +=        '</span>'
-    html +=        '<span class="label label-primary chat">Chat</span>'
+    html +=        '<span class="label label-primary find-req">'
+    html +=          'Find Friends'
+    html +=          '<div class="box-area input-group">'
+    html +=            '<input type="text" class="form-control friend-names" aria-describedby="sizing-addon1">'
+    html +=            '<div class="btn-group col-xs-12" role="group" style="z-index: 1000"><button type="button" class="btn btn-default send-to-server">Send</button></div>'
+    html +=          '</div>'
+    html +=        '</span>'
     html +=        '<span class="label label-primary bye">'
     html +=         'Bye'
     html +=         '<div class="box-area bye-selection">'
     html +=           '<select class="bye-chat"></select>'
     html +=         '</div>'
     html +=        '</span>'
+    html +=         `<span>server_ip: ${ip} port: ${port}</span>`
     html +=      '</div>'
     html +=      '<div class="entity-body">'
     html +=      '</div>'

@@ -176,13 +176,9 @@ class ChatServer
   def handle_find_req(sender_message, sender)
     rq, friend_name, my_name = sender_message.split(/\s+/)[1..-1]
     access_storage(lambda {|storage|
-      puts "aaaaa"
       if storage[friend_name]
-        puts "bbbbb"
         found_client = storage[friend_name]
-        puts found_client
         if found_client["publish"]
-          puts found_client["publish"]["names"]
           if !found_client["publish"]["names"].include? my_name.upcase
             @server.send("FINDDenied #{rq} #{friend_name}", 0, sender[2], sender[1])
           elsif found_client["publish"]["status"].upcase == 'ON'

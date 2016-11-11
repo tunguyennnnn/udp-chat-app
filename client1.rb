@@ -6,6 +6,6 @@ a = ClientChat.new(19999, server_ip , "aa", server_ip, 9999, 'localhost', 8002, 
   sleep 1
   obj.publish('ON', 'BB', 'CCC', 'DDD')
   obj.inform_request
-  sleep 7
+  sleep 10
   obj.bye_message("bb")
 })
