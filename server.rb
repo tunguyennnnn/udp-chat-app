@@ -59,7 +59,7 @@ class ChatServer
     when "SERVERReq"
       handler = Thread.new{handle_server_req_message(message, sender)}
     when 'SERVERAns'
-      handler = Thread.new(handle_server_ans_message(message, sender))
+      handler = Thread.new{handle_server_ans_message(message, sender)}
     else
       # should do anything
     end
@@ -71,9 +71,10 @@ class ChatServer
 
   def handle_server_ans_message(message, sender)
     type, name, bool = message.split(/\s+/)[1..-1]
-    if bool == 'true'
+    if bool.to_s == 'true'
       access_registered_queue(lambda {|registered_queue|
-        registered_queue[name].call(nil)
+        puts "xxxxxx"
+        registered_queue[name].call(nil, registered_queue)
         registered_queue.delete(name)
       })
     end
@@ -132,6 +133,7 @@ class ChatServer
               storage[name]["ip"] = sender[2]
               @server.send("REGISTERED #{rq}", 0, sender[2], sender[1])
             else
+              puts "sdsdada"
               @server.send("REGISTER-DENIED #{rq} #{other_ip} #{other_port}", 0, sender[2], sender[1])
             end
           }
@@ -179,7 +181,7 @@ class ChatServer
       if storage[friend_name]
         found_client = storage[friend_name]
         if found_client["publish"]
-          if !found_client["publish"]["names"].include? my_name.upcase
+          if !found_client["publish"]["names"].include? my_name
             @server.send("FINDDenied #{rq} #{friend_name}", 0, sender[2], sender[1])
           elsif found_client["publish"]["status"].upcase == 'ON'
             @server.send("FINDResp #{rq} #{friend_name} #{found_client["publish"]["port"]} #{found_client["ip"]} #{found_client["publish"]["token"]}", 0, sender[2], sender[1])

@@ -48,6 +48,7 @@ var x ;
 function Entity(type, id, name, ip){
   var self = this;
   x = self;
+  var friend = null;
   this.name = name;
   this.id = id;
   var partitions = id.split('-');
@@ -71,7 +72,7 @@ function Entity(type, id, name, ip){
         })
       });
     }).mouseleave(function(){
-      $(this).find('.box-area').first().hide()
+      $(this).find('.box-area').first().hide();
     })
 
     this.$entity.find('.req-info').first().on('click', function(){
@@ -80,17 +81,15 @@ function Entity(type, id, name, ip){
     this.$entity.find('.publish').first().click(function(){
       $(this).find('.box-area').first().show();
     }).mouseleave(function(){
-      $(this).find('.box-area').first().hide()
+      $(this).find('.box-area').first().hide();
     });
 
     this.$entity.find('.bye').first().click(function(){
-      $(this).find('.box-area').first().show();
-    }).mouseleave(function(){
-      $(this).find('.box-area').first().hide()
+      if (friend)
+        post({ip: self.ip, port: self.port, message: `bye_message ${friend}`});
     });
 
     function initChatBox(){
-      var friend = null;
       var $chatBox = self.$entity.find('.chat-box').first();
       var $sendButton = $chatBox.find('.send-chat-message').first();
       var $select = $chatBox.find('.friends-chat').first().selectize({
@@ -115,16 +114,17 @@ function Entity(type, id, name, ip){
       var on = 'on';
       var $publish = self.$entity.find('.publish').first();
       var $on = $publish.find('.client-status-on').first();
-      var $off = $publish.find('.client-status-on').first();
+      var $off = $publish.find('.client-status-off').first();
       var $names = $publish.find('.friend-names').first();
       $publish.find('.send-to-server').first().on('click', function(){
         var names = $names.val();
-        if ($on.checked){
+        if ($on[0].checked){
           on = 'on';
         }
-        else if ($off.checked){
+        else if ($off[0].checked){
           on = 'off';
         }
+
         post({ip: self.ip, port: self.port, message: `publish ${on} ${names}`})
       });
     }
@@ -182,9 +182,6 @@ function Entity(type, id, name, ip){
     html +=        '</span>'
     html +=        '<span class="label label-primary bye">'
     html +=         'Bye'
-    html +=         '<div class="box-area bye-selection">'
-    html +=           '<select class="bye-chat"></select>'
-    html +=         '</div>'
     html +=        '</span>'
     html +=         `<span>server_ip: ${ip} port: ${port}</span>`
     html +=      '</div>'
@@ -200,6 +197,14 @@ function Entity(type, id, name, ip){
       var friendName = message.split(' ')[6];
       this.selectize.addOption({name: friendName, id: friendName})
     }
+    if (message.indexOf('CHAT') != -1){
+      var friendName = message.split(' ')[7]
+      this.selectize.addOption({name: friendName, id: friendName})
+    }
+    if (message.indexOf('BYE') != -1){
+      var friendName = message.split(' ')[5]
+      this.selectize.removeOption(friendName);
+    }
     self.$entity.find('.entity-body').first().append('<span>'+ message + '</span><br>')
   }
 }
@@ -210,7 +215,7 @@ function post(message){
     type: 'POST',
     data: message,
     done: function(data){
-
+      console.log(true);
     }
   })
 }

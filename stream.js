@@ -30,8 +30,10 @@ http.createServer(function (req, res) {
 
     req.on('end', function () {
       sendTo(qs.parse(body));
-      res.write('true');
+      console.log(3333);
+
     });
+    res.end();
   }
 
 }).listen(8000, 'localhost')
