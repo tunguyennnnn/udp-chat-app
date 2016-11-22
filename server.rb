@@ -43,44 +43,31 @@ class ChatServer
     @ui_port = ui_port
   end
 
+  HANDLE__MESSAGE_LIST = ["REGISTER", "PUBLISH", "INFORMReq", "FINDReq", "SERVERReq", "SERVERAns"]
   def handle_message(message, sender)
     partitions = message.split(/\s+/)
     send_to_ui("Server Received", message)
     puts message
-    case partitions[0]
-    when "REGISTER"
-      handler = Thread.new{handle_register(message, sender)}
-    when "PUBLISH"
-      handler = Thread.new{handle_publish(message, sender)}
-    when "INFORMReq"
-      handler = Thread.new{handle_information_req(message, sender)}
-    when "FINDReq"
-      handler = Thread.new{handle_find_req(message, sender)}
-    when "SERVERReq"
-      handler = Thread.new{handle_server_req_message(message, sender)}
-    when 'SERVERAns'
-      handler = Thread.new{handle_server_ans_message(message, sender)}
-    else
-      # should do anything
+    if HANDLE__MESSAGE_LIST.include? partitions[0]
+        funcname = "handle_#{partitions[0].downcase}"
+        Thread.new{
+          send(funcname, message, sender)
+        }.run
     end
-    if handler
-      handler.run
-    end
-
   end
 
-  def handle_server_ans_message(message, sender)
+  def handle_serverans(message, sender)
     type, name, bool = message.split(/\s+/)[1..-1]
     if bool.to_s == 'true'
-      access_registered_queue(lambda {|registered_queue|
+      access_registered_queue{|registered_queue|
         puts "xxxxxx"
-        registered_queue[name].call(nil, registered_queue)
+        registered_queue[name].call(nil, registered_queue, sender[2], sender[1])
         registered_queue.delete(name)
-      })
+      }
     end
   end
 
-  def handle_server_req_message(message, sender)
+  def handle_serverreq(message, sender)
     type = message.split(/\s+/)[1]
     case type
     when "is_registered?"
@@ -91,63 +78,57 @@ class ChatServer
 
   def is_registered?(message)
     name, ip, port = message.split(/\s+/)[2..-1]
-    access_storage(lambda {|storage|
+    access_storage{|storage|
       if ip  == @ip && port == @port.to_s
-        access_registered_queue(lambda {|registered_queue|
+        access_registered_queue{|registered_queue|
           if registered_queue[name]
             registered_queue[name].call(true, storage)
           end
-        })
+        }
       else
-        access_registered_queue(lambda {|registered_queue|
-          if registered_queue[name]
+        access_registered_queue{|registered_queue|
+          if storage[name] || registered_queue[name]
+            registered_queue.delete(name)
+            @server.send("SERVERAns REGISTERED #{name} true", 0, ip, port)
           else
-            if storage[name] || registered_queue[name]
-              registered_queue.delete(name)
-              @server.send("SERVERAns REGISTERED #{name} true", 0, ip, port)
-            else
-              @server.send(message, 0, @adjacent_servers.next_server_ip, @adjacent_servers.next_server_port)
-            end
+            @server.send(message, 0, @adjacent_servers.next_server_ip, @adjacent_servers.next_server_port)
           end
-        })
+        }
       end
-    })
+    }
   end
 
   def handle_register(sender_message, sender)
     rq, name = sender_message.split(/\s+/)[1..-1]
-    access_storage(lambda{ |storage|
+    access_storage{ |storage|
       if storage[name] #if user has registered to this server --> considered it as a re-register
         @server.send("REGISTERED #{rq}", 0, sender[2], sender[1])
 
-      elsif storage.length < MAX_SIZE
+      else
         # else if the server can take the user
         # first push the user register decision in to a queue
         # then find out if the user has registered in other server
         # after being answered by other servers, lambda with appropriate parameters will be sent to make decision
         check_message = "SERVERReq is_registered? #{name}"
-        access_registered_queue(lambda {|registered_queue|
+        access_registered_queue{|registered_queue|
           registered_queue[name] = lambda { |can_register, storage, other_ip = nil, other_port = nil|
-            if can_register
+            if can_register && storage.length < MAX_SIZE
               storage[name] = {}
               storage[name]["ip"] = sender[2]
               @server.send("REGISTERED #{rq}", 0, sender[2], sender[1])
             else
-              puts "sdsdada"
               @server.send("REGISTER-DENIED #{rq} #{other_ip} #{other_port}", 0, sender[2], sender[1])
             end
           }
-        })
+        }
         @server.send("SERVERReq is_registered? #{name} #{@ip} #{@port}", 0, @adjacent_servers.next_server_ip, @adjacent_servers.next_server_port)
-      else #if @server is full of users, refer the user to another server
-        @server.send("REGISTER-DENIED #{rq} #{@adjacent_servers.next_server_ip} #{@adjacent_servers.next_server_port}", 0, sender[2], sender[1])
       end
-    })
+    }
   end
 
   def handle_publish(sender_message, sender)
     rq, name, port, status, *list_of_names = sender_message.split(/\s+/)[1..-1]
-    access_storage(lambda{ |storage|
+    access_storage{ |storage|
       if storage[name] && (status.upcase == 'ON' || status.upcase == 'OFF')
         token = status + "-" + list_of_names.join(name)
         storage[name]["publish"] = {}
@@ -159,12 +140,12 @@ class ChatServer
       else
         @server.send("UNPUBLISHED #{rq}", 0, sender[2], sender[1])
       end
-    })
+    }
   end
 
-  def handle_information_req(sender_message, sender)
+  def handle_informreq(sender_message, sender)
     rq, name = sender_message.split(/\s+/)[1..-1]
-    access_storage(lambda {|storage|
+    access_storage{|storage|
       if storage[name]
         publish = storage[name]["publish"]
         port, status, list_of_names = publish["port"], publish["status"], publish["names"]
@@ -172,12 +153,12 @@ class ChatServer
       else
         @server.send("INFORM-REQ-DENIED #{rq}", 0, sender[2], sender[1])
       end
-    })
+    }
   end
 
-  def handle_find_req(sender_message, sender)
+  def handle_findreq(sender_message, sender)
     rq, friend_name, my_name = sender_message.split(/\s+/)[1..-1]
-    access_storage(lambda {|storage|
+    access_storage{|storage|
       if storage[friend_name]
         found_client = storage[friend_name]
         if found_client["publish"]
@@ -194,13 +175,13 @@ class ChatServer
       else
         @server.send("REFER #{rq} #{friend_name} #{@adjacent_servers.next_server_ip} #{@adjacent_servers.next_server_port}", 0, sender[2], sender[1])
       end
-    })
+    }
   end
 
 
-  def access_storage(func)
+  def access_storage(&block)
     @semaphore.synchronize{
-      func.call(@storage)
+      block.call(@storage)
       File.open("server_#{@port}.txt", "w+") do |f|
         puts @storage
         f.write(@storage.to_json)
@@ -208,9 +189,9 @@ class ChatServer
     }
   end
 
-  def access_registered_queue(func)
+  def access_registered_queue(&block)
     @register_semaphore.synchronize{
-      func.call(@registered_queue)
+      block.call(@registered_queue)
     }
   end
 

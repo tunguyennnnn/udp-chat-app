@@ -130,15 +130,26 @@ function Entity(type, id, name, ip){
     }
     initPublish();
 
-    var $findReq = this.$entity.find('.find-req').first();
-    $findReq.on('click', function(){
-      $(this).find('.box-area').first().show();
-    }).mouseleave(function(){
-      $(this).find('.box-area').first().hide()
-    }).find('.send-to-server').first().on('click', function(){
-      var friendName = $findReq.find('.friend-names').first().val();
-      post({ip: self.ip, port: self.port, message: `find_user ${friendName}`})
-    });
+    function initFindFriend(){
+      var $findReq = self.$entity.find('.find-req').first();
+      $findReq.on('click', function(){
+        $(this).find('.box-area').first().show();
+      }).mouseleave(function(){
+        $(this).find('.box-area').first().hide()
+      }).find('.send-to-server').first().on('click', function(){
+        var friendName = $findReq.find('.friend-names').first().val();
+        var port = $findReq.find('.find-port').first().val();
+        var ip = $findReq.find('.find-ip').first().val();
+        if (port !== '' && ip !== ''){
+          post({ip: self.ip, port: self.port, message: `find_user ${friendName} ${ip} ${port}`});
+        }
+        else{
+          post({ip: self.ip, port: self.port, message: `find_user ${friendName}`});
+        }
+      });
+    }
+
+    initFindFriend()
 
   }
 
@@ -177,6 +188,8 @@ function Entity(type, id, name, ip){
     html +=          'Find Friends'
     html +=          '<div class="box-area input-group">'
     html +=            '<input type="text" class="form-control friend-names" aria-describedby="sizing-addon1">'
+    html +=            '<div class="col-xs-12"><input type="text" class="form-control find-ip" aria-describedby="sizing-addon1"></div>'
+    html +=            '<div class="col-xs-12"><input type="text" class="form-control find-port" aria-describedby="sizing-addon1"></div>'
     html +=            '<div class="btn-group col-xs-12" role="group" style="z-index: 1000"><button type="button" class="btn btn-default send-to-server">Send</button></div>'
     html +=          '</div>'
     html +=        '</span>'
