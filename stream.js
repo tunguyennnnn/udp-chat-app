@@ -5,7 +5,7 @@ var qs = require('querystring');
 
 const dgram = require('dgram');
 const server = dgram.createSocket('udp4');
-server.bind(8002, 'localhost');
+server.bind(8002, "172.31.77.215");
 
 var messageToUi = {};
 
@@ -36,7 +36,7 @@ http.createServer(function (req, res) {
     res.end();
   }
 
-}).listen(8000, 'localhost')
+}).listen(8000, '172.31.77.215')
 
 
 function sendTo(data){
@@ -44,6 +44,8 @@ function sendTo(data){
   var port = data.port;
   var ip = data.ip;
   var message = 'EXEC ' + data.message;
+  console.log(ip);
+  console.log(port);
   server.send(message, 0, message.length, port, ip);
 }
 

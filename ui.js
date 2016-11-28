@@ -1,7 +1,8 @@
 $(document).ready(updateClient);
 
+var HOST = 'http://172.31.77.215:8000';
 function updateClient(){
-  var client = createStreamingClient('http://localhost:8000', progress, function(data){console.log(data)})
+  var client = createStreamingClient(HOST, progress, function(data){console.log(data)})
 }
 
 
@@ -224,7 +225,7 @@ function Entity(type, id, name, ip){
 
 function post(message){
   $.ajax({
-    url: 'http://localhost:8000',
+    url: HOST,
     type: 'POST',
     data: message,
     done: function(data){

@@ -9,7 +9,7 @@ class ClientChat
 
   REQUEST_TABLE = {"REGISTER" => ["REGISTERED", "REGISTER-DEINIED"],
                    "PUBLISH" => ["PUBLISHED", "UNPUBLISHED"],
-                   "INFORMReq" => ["INFORMResp"],
+                   "INFORMReq" => ["INFORMResp", "INFORMDenied"],
                    "FINDReq" => ["FINDResp", "FINDDenied", "REFER"],
                    "CHAT" => [],
                    "BYE" => []

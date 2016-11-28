@@ -103,7 +103,6 @@ class ChatServer
     access_storage{ |storage|
       if storage[name] #if user has registered to this server --> considered it as a re-register
         @server.send("REGISTERED #{rq}", 0, sender[2], sender[1])
-
       else
         # else if the server can take the user
         # first push the user register decision in to a queue
