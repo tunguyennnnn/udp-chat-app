@@ -129,7 +129,7 @@ class ChatServer
     rq, name, port, status, *list_of_names = sender_message.split(/\s+/)[1..-1]
     access_storage{ |storage|
       if storage[name] && (status.upcase == 'ON' || status.upcase == 'OFF')
-        token = status + "-" + list_of_names.join(name)
+        token = status + "-" + list_of_names.join(name) + name
         storage[name]["publish"] = {}
         storage[name]["publish"]["status"] = status
         storage[name]["publish"]["port"] = port
@@ -147,8 +147,8 @@ class ChatServer
     access_storage{|storage|
       if storage[name]
         publish = storage[name]["publish"]
-        port, status, list_of_names = publish["port"], publish["status"], publish["names"]
-        @server.send("INFORMResp #{rq} #{name} #{port} #{status} #{list_of_names}", 0, sender[2], sender[1])
+        port, status, list_of_names, token = publish["port"], publish["status"], publish["names"], publish["token"]
+        @server.send("INFORMResp #{rq} #{name} #{port} #{status} #{list_of_names} #{token}", 0, sender[2], sender[1])
       else
         @server.send("INFORM-REQ-DENIED #{rq}", 0, sender[2], sender[1])
       end
@@ -164,7 +164,7 @@ class ChatServer
           if !found_client["publish"]["names"].include? my_name
             @server.send("FINDDenied #{rq} #{friend_name}", 0, sender[2], sender[1])
           elsif found_client["publish"]["status"].upcase == 'ON'
-            @server.send("FINDResp #{rq} #{friend_name} #{found_client["publish"]["port"]} #{found_client["ip"]} #{found_client["publish"]["token"]}", 0, sender[2], sender[1])
+            @server.send("FINDResp #{rq} #{friend_name} #{found_client["publish"]["port"]} #{found_client["ip"]} #{my_name + friend_name}", 0, sender[2], sender[1])
           else
             @server.send("FINDResp #{rq} #{friend_name} OFF", 0, sender[2], sender[1])
           end
@@ -176,7 +176,6 @@ class ChatServer
       end
     }
   end
-
 
   def access_storage(&block)
     @semaphore.synchronize{

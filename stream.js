@@ -5,7 +5,7 @@ var qs = require('querystring');
 
 const dgram = require('dgram');
 const server = dgram.createSocket('udp4');
-server.bind(8002, "172.31.77.215");
+server.bind(8002, "localhost");
 
 var messageToUi = {};
 
@@ -36,7 +36,7 @@ http.createServer(function (req, res) {
     res.end();
   }
 
-}).listen(8000, '172.31.77.215')
+}).listen(8000, 'localhost')
 
 
 function sendTo(data){

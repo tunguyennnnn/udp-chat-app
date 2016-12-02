@@ -1,1 +1,1 @@
-{"bb":{"ip":"127.0.0.1"}}
+{"bb":{"ip":"127.0.0.1","publish":{"status":"on","port":"20000","names":["aa","bb","cc","dd"],"token":"on-aabbbbbbccbbddbb"}}}

@@ -132,7 +132,7 @@ class ClientChat
         request_table["REGISTER"].delete rq_num
         send_to_ui("Received", message)
       else
-        send_to_ui("Error", "Received authorized message: #{message}")
+        send_to_ui("Error", "Received unauthorized message: #{message}")
       end
     }
   end
@@ -146,7 +146,7 @@ class ClientChat
         correct_rq = true
         send_to_ui("Received", message)
       else
-        send_to_ui("Error", "Received authorized message: #{message}")
+        send_to_ui("Error", "Received unauthorized message: #{message}")
       end
     }
 
@@ -195,7 +195,7 @@ class ClientChat
         send_to_ui("Received", message)
         @token = message.split(/\s+/).last()
       else
-        send_to_ui("Error", "Received authorized message: #{message}")
+        send_to_ui("Error", "Received unauthorized message: #{message}")
       end
     }
   end
@@ -207,11 +207,10 @@ class ClientChat
         request_table["REGISTER"].delete rq_num
         send_to_ui("Received", message)
       else
-        send_to_ui("Error", "Received authorized message: #{message}")
+        send_to_ui("Error", "Received unauthorized message: #{message}")
       end
     }
   end
-
 
   ##################### REQUEST INFORMATION ###############
   def inform_request
@@ -244,11 +243,12 @@ class ClientChat
   def handle_informresp(message, sender)
     rq_num = message.split(/\s+/)[1]
     access_resource{|rq, friends, request_table|
+      @token = message.split(/\s+/).last()
       if request_table["INFORM"] && request_table["INFORM"][rq_num]
         request_table["INFORM"].delete rq_num
         send_to_ui("Received", message)
       else
-        send_to_ui("Error", "Received authorized message: #{message}")
+        send_to_ui("Error", "Received unauthorized message: #{message}")
       end
     }
   end
@@ -260,7 +260,7 @@ class ClientChat
         request_table["INFORM"].delete rq_num
         send_to_ui("Received", message)
       else
-        send_to_ui("Error", "Received authorized message: #{message}")
+        send_to_ui("Error", "Received unauthorized message: #{message}")
       end
     }
   end
@@ -271,12 +271,14 @@ class ClientChat
     rq_num = "0"
     message = ""
     access_resource{ |rq, friends, request_table|
+      puts rq
       rq_num = rq.to_s
       message = "FINDReq #{rq} #{name} #{@name}"
       request_table["FIND"] = request_table["FIND"] || {}
       request_table["FIND"][rq_num] = lambda {
         @client.send(message, 0, ip, port)
       }
+      puts request_table
       @client.send(message, 0, ip, port)
       @rq += 1
     }
@@ -297,12 +299,13 @@ class ClientChat
   def handle_findresp(message, sender)
     rq_num, name, port, ip, token  = message.split(/\s+/)[1..-1]
     access_resource do |rq, friends, request_table|
+      puts request_table
       if request_table["FIND"] && request_table["FIND"][rq_num]
         request_table["FIND"].delete  rq_num
         friends[name] = {port: port, ip: ip, token: token}
         send_to_ui("Received", message)
       else
-        send_to_ui("Error", "Received authorized message: #{message}")
+        send_to_ui("Error", "Received unauthorized message: #{message}")
       end
     end
   end
@@ -314,21 +317,26 @@ class ClientChat
         request_table["FIND"].delete rq_num
         send_to_ui("Received", message)
       else
-        send_to_ui("Error", "Received authorized message: #{message}")
+        send_to_ui("Error", "Received unauthorized message: #{message}")
       end
     }
   end
 
   def handle_refer(message, sender)
-    rq_num, ip, port = message.split(/\s+/)[1..-1]
+    rq_num, name, ip, port = message.split(/\s+/)[1..-1]
+    correct_rq = false
     access_resource{|rq, friends, request_table|
       if request_table["FIND"] && request_table["FIND"][rq_num]
         request_table["FIND"].delete rq_num
+        correct_rq = true
         send_to_ui("Received", message)
       else
-        send_to_ui("Error", "Received authorized message: #{message}")
+        send_to_ui("Error", "Received unauthorized message: #{message}")
       end
     }
+    if correct_rq
+      find_user(name, ip, port)
+    end
   end
 
   ##################### CHAT #########################
@@ -345,12 +353,14 @@ class ClientChat
             message = "CHAT #{@name} #{@ip} #{@port} #{signature}"
           end
           allowed_length = MAX_BYTE_SIZE - message.bytesize - 3
+          i = 0
           while allowed_length < text.bytesize do
-            @client.send("#{message} 1 #{text[0..allowed_length]}", 0, ip, port)
+            @client.send("#{message} #{i} 1 #{text[0..allowed_length]}", 0, ip, port)
             text = text[allowed_length..-1]
+            i = i + 1
           end
           if text.bytesize > 0
-            @client.send("#{message} 0 #{text}", 0, ip, port)
+            @client.send("#{message} #{i} 0 #{text}", 0, ip, port)
           end
         else
           send_to_ui("Error", "#{name} doesn't wanna talk to you")
@@ -362,20 +372,26 @@ class ClientChat
   end
 
   def handle_chat(message, sender)
-    token, name, ip, port, signature, more, *text =  message.split(/\s+/)[1..-1]
+    token, name, ip, port, signature, sorting_number, more, *text =  message.split(/\s+/)[1..-1]
     text = text.join(' ')
-    if @token && token != @token
+    if @token && !@token.include?(token)
       @client.send("CHAT-DENIED You cannot talk to me", 0, sender[2], sender[1])
     else
       access_resource{|rq, friends, request_table|
         friends[name] = {port: port, ip: ip}
         request_table["CHAT"] = request_table["CHAT"] || {}
-        request_table["CHAT"][signature.to_s] = request_table["CHAT"][signature.to_s] || ""
+        request_table["CHAT"][signature.to_s] = request_table["CHAT"][signature.to_s] || {}
         puts request_table["CHAT"]
         if more.to_s == "1"
-          request_table["CHAT"][signature.to_s] += text
+          request_table["CHAT"][signature.to_s][sorting_number.to_i] = text
         else
-          final_message = "CHAT message from #{name} #{request_table["CHAT"][signature.to_s] + text}"
+          reassemble_message = ""
+          numbers = request_table["CHAT"][signature.to_s].keys.sort
+          numbers.each do |number|
+            reassemble_message += request_table["CHAT"][signature.to_s][number]
+          end
+          reassemble_message += text
+          final_message = "CHAT message from #{name} #{reassemble_message}"
           send_to_ui("Received", final_message)
         end
       }
