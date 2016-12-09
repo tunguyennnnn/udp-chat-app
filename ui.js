@@ -1,6 +1,6 @@
 $(document).ready(updateClient);
 
-var HOST = 'http://localhost:8000';
+var HOST = 'http://172.31.54.60:8000';
 function updateClient(){
   var client = createStreamingClient(HOST, progress, function(data){console.log(data)})
 }

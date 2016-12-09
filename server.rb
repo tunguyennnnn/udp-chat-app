@@ -5,7 +5,7 @@ require 'json'
 
 
 class ChatServer
-  MAX_SIZE = 2
+  MAX_SIZE = 5
   attr_accessor :adjacent_servers
 
   def initialize(host, port)

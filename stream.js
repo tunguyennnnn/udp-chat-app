@@ -5,10 +5,14 @@ var qs = require('querystring');
 
 const dgram = require('dgram');
 const server = dgram.createSocket('udp4');
-server.bind(8002, "localhost");
+
+/// udp server /////
+server.bind(8002, "172.31.54.60");
 
 var messageToUi = {};
 
+
+//////http server//////
 http.createServer(function (req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.writeHead(200, {'Content-Type': 'text/html'});
@@ -37,7 +41,7 @@ http.createServer(function (req, res) {
     res.end();
   }
 
-}).listen(8000, 'localhost')
+}).listen(8000, '172.31.54.60')
 
 
 function sendTo(data){
