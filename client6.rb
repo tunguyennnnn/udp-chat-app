@@ -1,4 +1,8 @@
 load 'client.rb'
-b = ClientChat.new(20004, nil, "ff", nil, 9999,'localhost', 8002, lambda{ |obj|
-  obj.register 0
+addr = Socket.ip_address_list
+server_ip = 'localhost' || addr.last.ip_address
+port = ARGV[1] || Random.new.rand(2000..65535)
+name = ARGV[0] || "ff"
+f = ClientChat.new(name, port, server_ip,'localhost', 8002, lambda{ |obj|
+
 })

@@ -12,6 +12,7 @@ var messageToUi = {};
 http.createServer(function (req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.writeHead(200, {'Content-Type': 'text/html'});
+  res.connection.setTimeout(0);
   if (req.method === 'GET'){
     var currentTime = new Date();
     sys.puts('Starting sending time');

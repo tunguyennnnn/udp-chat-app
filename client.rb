@@ -20,15 +20,15 @@ class ClientChat
   HANDLE_REQUEST_TABLE = ["handle_registered", "handle_register_denied", "handle_published", "handle_unpublished", "handle_findresp",
                           "handle_finddenied", "handle_refer", "handle_informresp", "handle_informdenied", "handle_chat_denied", "handle_chat", "handle_bye"]
 
-  def initialize(port, ip, name, server_ip, server_port, ui_ip, ui_port, func = lambda{|obj|})
+  def initialize(name, port, ip, ui_ip, ui_port, func = lambda{|obj|})
     #initialize client params
     @name = name
     @port = port
     @ip = ip || "127.0.0.1"
 
     #initialize server attrs
-    @server_ip = server_ip
-    @server_port = server_port
+    @server_ip = nil
+    @server_port = nil
 
     #intialize ui monitor server attrs
     @ui_ip = ui_ip
@@ -138,7 +138,7 @@ class ClientChat
   end
 
   def handle_register_denied(message, sender)
-    rq_num, next_server_ip, next_port = message.split(/\s+/)[1..-1]
+    rq_num, next_server_ip, next_server_port = message.split(/\s+/)[1..-1]
     correct_rq = nil
     access_resource{|rq, friends, request_table|
       if (request_table["REGISTER"] && request_table["REGISTER"][rq_num])
@@ -153,7 +153,7 @@ class ClientChat
     if correct_rq
       Thread.new {
         register(next_server_ip, next_server_port)
-      }
+      }.run
     end
   end
 
@@ -335,7 +335,9 @@ class ClientChat
       end
     }
     if correct_rq
-      find_user(name, ip, port)
+      Thread.new{
+        find_user(name, ip, port)
+      }.run
     end
   end
 
@@ -350,7 +352,7 @@ class ClientChat
           if token
             message = "CHAT #{token} #{@name} #{@ip} #{@port} #{signature}"
           else
-            message = "CHAT #{@name} #{@ip} #{@port} #{signature}"
+            message = "CHAT Notoken #{@name} #{@ip} #{@port} #{signature}"
           end
           allowed_length = MAX_BYTE_SIZE - message.bytesize - 3
           i = 0
@@ -374,10 +376,10 @@ class ClientChat
   def handle_chat(message, sender)
     token, name, ip, port, signature, sorting_number, more, *text =  message.split(/\s+/)[1..-1]
     text = text.join(' ')
-    if @token && !@token.include?(token)
-      @client.send("CHAT-DENIED You cannot talk to me", 0, sender[2], sender[1])
-    else
-      access_resource{|rq, friends, request_table|
+    access_resource{|rq, friends, request_table|
+      if @token && !@token.include?(token) && !friends[name]
+        @client.send("CHAT-DENIED You cannot talk to me", 0, sender[2], sender[1])
+      else
         friends[name] = {port: port, ip: ip}
         request_table["CHAT"] = request_table["CHAT"] || {}
         request_table["CHAT"][signature.to_s] = request_table["CHAT"][signature.to_s] || {}
@@ -394,8 +396,8 @@ class ClientChat
           final_message = "CHAT message from #{name} #{reassemble_message}"
           send_to_ui("Received", final_message)
         end
-      }
-    end
+      end
+    }
   end
 
   def handle_chat_denied(message, sender)

@@ -5,8 +5,6 @@ function updateClient(){
   var client = createStreamingClient(HOST, progress, function(data){console.log(data)})
 }
 
-
-
 function createStreamingClient(url, progress, finished){
   var xhr = new XMLHttpRequest(), received =0;
   xhr.open('get', url, true);
@@ -157,7 +155,7 @@ function Entity(type, id, name, ip){
   function generateServerHtml(id, ip, port){
     var html = '<div class="entity" id="' + id +'">'
     html +=      '<div class="entity-header">'
-    html +=         `<span>server_ip: ${ip} port: ${port}</span>`
+    html +=         `<span class="ip-port-font">server_ip: ${ip} port: ${port}</span>`
     html +=      '</div>'
     html +=      '<div class="entity-body"></div>'
     html +=    '</div>'
@@ -197,7 +195,7 @@ function Entity(type, id, name, ip){
     html +=        '<span class="label label-primary bye">'
     html +=         'Bye'
     html +=        '</span>'
-    html +=         `<span>server_ip: ${ip} port: ${port}</span>`
+    html +=         `<span class="ip-port-font">server_ip: ${ip} port: ${port} name: ${id.split('-')[0]}</span>`
     html +=      '</div>'
     html +=      '<div class="entity-body">'
     html +=      '</div>'

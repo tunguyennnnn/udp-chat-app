@@ -5,10 +5,9 @@ require 'json'
 
 
 class ChatServer
-  MAX_SIZE = 5
-  @@host = 'localhost'
-
+  MAX_SIZE = 2
   attr_accessor :adjacent_servers
+
   def initialize(host, port)
     @ip = host
     @port = port
@@ -60,7 +59,6 @@ class ChatServer
     type, name, bool = message.split(/\s+/)[1..-1]
     if bool.to_s == 'true'
       access_registered_queue{|registered_queue|
-        puts "xxxxxx"
         registered_queue[name].call(nil, registered_queue, sender[2], sender[1])
         registered_queue.delete(name)
       }
@@ -82,8 +80,9 @@ class ChatServer
       if ip  == @ip && port == @port.to_s
         access_registered_queue{|registered_queue|
           if registered_queue[name]
-            registered_queue[name].call(true, storage)
+            registered_queue[name].call(true, storage, @adjacent_servers.next_server_ip, @adjacent_servers.next_server_port)
           end
+          registered_queue.delete(name)
         }
       else
         access_registered_queue{|registered_queue|
